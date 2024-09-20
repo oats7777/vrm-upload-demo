@@ -8,13 +8,13 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AlertCircle, Upload, Check, RotateCw } from 'lucide-react';
+import { AlertCircle, Upload, Check, RotateCw, Send } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -32,7 +32,10 @@ export function VrmUploadAndRender_3d() {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const vrmRef = useRef<VRM | null>(null);
-
+  const [messages, setMessages] = useState<
+    { text: string; sender: 'user' | 'avatar' }[]
+  >([]);
+  const [inputMessage, setInputMessage] = useState('');
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
@@ -120,6 +123,20 @@ export function VrmUploadAndRender_3d() {
     animate();
   };
 
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputMessage.trim()) {
+      setMessages([...messages, { text: inputMessage, sender: 'user' }]);
+      setInputMessage('');
+      // Simulate avatar response
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          { text: '안녕하세요! 무엇을 도와드릴까요?', sender: 'avatar' },
+        ]);
+      }, 1000);
+    }
+  };
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current && vrmRef.current) {
       const headPosition = new THREE.Vector3();
@@ -149,112 +166,180 @@ export function VrmUploadAndRender_3d() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-purple-800">
-            VRM 아바타 업로드 및 렌더링
-          </CardTitle>
-          <CardDescription>
-            VRM 파일을 업로드하고 3D 아바타를 생성하세요.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="vrm-file" className="text-lg font-medium">
-                VRM 파일 선택
-              </Label>
-              <Input
-                id="vrm-file"
-                type="file"
-                accept=".vrm"
-                onChange={handleFileChange}
-                className="cursor-pointer border-2 border-dashed border-purple-300 hover:border-purple-500 transition-colors"
-              />
-            </div>
-            {file && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>선택된 파일</AlertTitle>
-                <AlertDescription>{file.name}</AlertDescription>
-              </Alert>
-            )}
-            <Button
-              type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-              disabled={!file || uploading}
-            >
-              {uploading ? (
-                <>
-                  <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  업로드 중...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  업로드 및 아바타 생성
-                </>
-              )}
-            </Button>
-          </form>
-
-          {uploading && (
-            <div className="space-y-2">
-              <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-gray-500 text-center">
-                {uploadProgress}% 완료
-              </p>
-            </div>
-          )}
-
-          {uploadSuccess && (
-            <Alert className="bg-green-100 text-green-800 border-green-300">
-              <Check className="h-4 w-4" />
-              <AlertTitle>성공!</AlertTitle>
-              <AlertDescription>
-                VRM 파일이 성공적으로 업로드되었습니다.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {renderError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>오류</AlertTitle>
-              <AlertDescription>{renderError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="mt-6 space-y-4">
-            <h3 className="text-xl font-semibold text-purple-800">
-              3D 아바타 미리보기
-            </h3>
-            <div className="border-2 border-purple-200 rounded-lg overflow-hidden relative">
-              <canvas
-                ref={canvasRef}
-                width={300}
-                height={300}
-                className="w-full"
-              />
-              <Button
-                size="icon"
-                variant="outline"
-                className="absolute bottom-2 right-2"
-                onClick={resetCamera}
-              >
-                <RotateCw className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-sm text-gray-500">
-            VRM 파일은 안전하게 암호화되어 저장되며, 귀하의 개인정보는
-            보호됩니다.
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8 text-gray-100">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mb-4">
+            VRM 아바타 업로드 및 채팅
+          </h1>
+          <p className="text-xl text-gray-400">
+            3D 아바타를 업로드하고 대화를 나눠보세요.
           </p>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          <Card className="bg-gray-800 border-gray-700 shadow-2xl lg:col-span-1">
+            <CardHeader className="border-b border-gray-700 pb-6">
+              <CardTitle className="text-2xl font-bold text-gray-200">
+                파일 업로드
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                VRM 파일을 선택하고 업로드하세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="vrm-file"
+                    className="text-lg font-medium text-gray-200"
+                  >
+                    VRM 파일 선택
+                  </Label>
+                  <Input
+                    id="vrm-file"
+                    type="file"
+                    accept=".vrm"
+                    onChange={handleFileChange}
+                    className="cursor-pointer border-2 border-dashed border-gray-600 hover:border-purple-500 transition-colors bg-gray-700 text-gray-200"
+                  />
+                </div>
+                {file && (
+                  <Alert
+                    variant="default"
+                    className="bg-gray-700 border-gray-600"
+                  >
+                    <AlertCircle className="h-4 w-4 text-purple-400" />
+                    <AlertTitle className="text-gray-200">
+                      선택된 파일
+                    </AlertTitle>
+                    <AlertDescription className="text-gray-300">
+                      {file.name}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
+                  disabled={!file || uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Upload className="mr-2 h-5 w-5 animate-spin" />
+                      업로드 중...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-5 w-5" />
+                      업로드 및 아바타 생성
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              {uploading && (
+                <div className="space-y-2">
+                  <Progress
+                    value={uploadProgress}
+                    className="w-full h-2 bg-gray-700"
+                  />
+                  <p className="text-sm text-gray-400 text-center">
+                    {uploadProgress}% 완료
+                  </p>
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <Alert
+                  variant="default"
+                  className="bg-green-900 border-green-700 text-green-100"
+                >
+                  <Check className="h-4 w-4 text-green-400" />
+                  <AlertTitle className="text-green-100">성공!</AlertTitle>
+                  <AlertDescription className="text-green-200">
+                    VRM 파일이 성공적으로 업로드되었습니다.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {renderError && (
+                <Alert
+                  variant="destructive"
+                  className="bg-red-900 border-red-700 text-red-100"
+                >
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <AlertTitle className="text-red-100">오류</AlertTitle>
+                  <AlertDescription className="text-red-200">
+                    {renderError}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700 shadow-2xl lg:col-span-2 flex flex-col">
+            <CardHeader className="border-b border-gray-700 pb-6">
+              <CardTitle className="text-2xl font-bold text-gray-200">
+                3D 아바타 미리보기 및 채팅
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                아바타와 대화를 나눠보세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow flex flex-col pt-6">
+              <div className="border-2 border-gray-700 rounded-lg overflow-hidden relative bg-gray-900 mb-4 flex-grow">
+                <canvas ref={canvasRef} className="w-full h-full" />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="absolute bottom-4 right-4 bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-200"
+                  onClick={resetCamera}
+                >
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-64 bg-gray-900 rounded-lg p-4 flex flex-col">
+                <ScrollArea className="flex-grow mb-4">
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`mb-2 ${
+                        message.sender === 'user' ? 'text-right' : 'text-left'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block p-2 rounded-lg ${
+                          message.sender === 'user'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}
+                      >
+                        {message.text}
+                      </span>
+                    </div>
+                  ))}
+                </ScrollArea>
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="메시지를 입력하세요..."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    className="flex-grow bg-gray-700 text-gray-200 border-gray-600"
+                  />
+                  <Button
+                    type="submit"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span className="sr-only">전송</span>
+                  </Button>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
